@@ -19,10 +19,10 @@ module.exports = (grunt) ->
     clean: ["tmp/", "build/", "./*.tar.gz"]
     copy:
       main:
-        files: [{
-          src: ["src/index.html"]
-          dest: "build/index.html"
-        }]
+        files: [
+          { src: ["src/index.html"], dest: "build/index.html" },
+          { expand: true, cwd: "src/content/", src: ['*', '**'], dest: "build/content/"}
+        ]
     compress:
       main:
         options:

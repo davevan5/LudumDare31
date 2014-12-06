@@ -2,3 +2,5 @@ build/
 node_modules/
 npm-debug.log
 tmp/
+ld31.sublime-project
+ld31.sublime-workspace
