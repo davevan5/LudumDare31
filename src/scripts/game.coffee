@@ -1,30 +1,50 @@
-level = [
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+level =
+  data: [
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
-levelWidth=20
-levelHeight=11
+LEVEL_TILE_SIZE =
+  width: 20
+  height: 11
+
+TILE_PIXEL_SIZE =
+  width: 64
+  height: 64
   
-preload = () ->
-  game.load.image('floor', '../content/sprites/floor.png')
+class LevelTile
+  constructor: (x, y, game) ->
+    @sprite = game.add.sprite(x * 64, y * 64, 'floor')
 
-create = () ->
-  for x in [0...levelWidth]
-    for y in [0...levelHeight]
-      game.add.sprite(x * 64, y * 64, 'floor') if level[x + (y * levelWidth)] == 1
+  update: () ->
+
+allOnOne =
+  tiles: []
+
+  createTiles: () ->
+    for x in [0...LEVEL_TILE_SIZE.width]
+      for y in [0...LEVEL_TILE_SIZE.height]
+        tiles.push(new LevelTile x, y, this)
+
+  getTile: (x,y) ->
+    index = x + (y * LEVEL_TILE_SIZE.width)
+    tiles[index]
+
+  preload: () ->
+    game.load.image('floor', '../content/sprites/floor.png')
+
+  create: () ->
+    createTiles
   
-  game.add.tilemap('test', 64, 64, 20, 11)
+  update: () ->
+    tile.update for tile in this.tiles
 
-update = () ->
-  # game logic here
-
-game = new Phaser.Game 1280, 720, Phaser.WEBGL, '', { preload: preload, create: create, update: update }
+game = new Phaser.Game 1280, 720, Phaser.WEBGL, '', allOnOne
