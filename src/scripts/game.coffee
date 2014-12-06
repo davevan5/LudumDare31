@@ -13,7 +13,8 @@ levels = [
       1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
-    start: null
+    start: (state) ->
+      state.chest.sprite.position = Helpers.getEntityPositionForTile(5, 2)
     cleanup: null
   }, {
     data: [
@@ -29,7 +30,8 @@ levels = [
       1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
-    start: null
+    start: (state) ->
+      state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
     cleanup: null
   }
 ]
@@ -63,6 +65,10 @@ SHADOW_COLOR =
 BLOCK_TYPES = 4
 
 Helpers =
+  getEntityPositionForTile: (tileX, tileY) ->
+      x: tileX * TILE_PIXEL_SIZE.width
+      y: tileY * TILE_PIXEL_SIZE.height + TILE_LOWERED_OFFSET
+    
   rgbToHex: (r, g, b) ->
     result = 0
     result = (Math.floor(r * 255) & 0xFF) << 16
@@ -206,8 +212,8 @@ class Chest
     @sprite.body.immovable = true    
 
   update: () ->
-    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, @sprite.y / TILE_PIXEL_SIZE.height)
-  
+    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
+      
 # Default game state
 allOnOne =
   getTileIndex: (x,y) ->
@@ -226,7 +232,7 @@ allOnOne =
         @entities.push(tile)
         
   updateLevel: (level) ->
-    @level.cleanup(this) if @level?.cleanup?
+    @level?.cleanup?(this)
     @level = level
     
     for y in [0...LEVEL_TILE_SIZE.height]
@@ -235,7 +241,7 @@ allOnOne =
         tile = @getTile(x,y)# @tiles[tileIndex]
         tile.state(level.data[tileIndex])
 
-    @level.start(this) if @level?.start?
+    @level?.start?(this)
     
   preload: () ->
     game.time.advancedTiming = true
@@ -246,6 +252,7 @@ allOnOne =
   create: () ->
     @tiles = []
     @entities = []
+    @criticalEntities = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
     cursors = game.input.keyboard.createCursorKeys()
@@ -253,9 +260,8 @@ allOnOne =
     @createTiles()
     @player = new Player()
     @chest = new Chest()
-    @entities.push(@player)
-    @entities.push(@chest)
-
+    @criticalEntities.push(@player)
+    @criticalEntities.push(@chest)
     @updateLevel(levels[0])
 
     if debug
@@ -264,9 +270,12 @@ allOnOne =
         console.log(Helpers.levelDataToString(@tiles))
       
   update: () ->
+    for entity in @criticalEntities
+      entity.update?()
+    
     # Perform updates
     for entity in @entities
-      entity.update() if entity.update?
+      entity.update?()
       
     # Do collision checks
     for tile in @tiles
