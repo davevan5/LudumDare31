@@ -34,12 +34,15 @@ Helpers =
     result
 
 class LevelTile
-  constructor: (x, y, blockType) ->
+  constructor: (x, y, z, blockType) ->
+    @defaultz = z
     @startLocation = { x: x * 64, y: y * 64 }
     @sprite = game.add.sprite(x * 64, y * 64, 'blocks', blockType)
+    @sprite.z = z
     @raisedPosition = 0
     @tween = null
     @tweenDirection = 0
+    this.collidable(false)
     this.updateBlockDisplay()
 
   updateBlockDisplay: () ->
@@ -58,12 +61,23 @@ class LevelTile
       if @raisedPosition > 0 && @tweenDirection == 1
         @tweenDirection = 0
         @tween = game.add.tween(this).to({ raisedPosition: 0 }, 1000, Phaser.Easing.Linear.None)
-        @tween.start()        
+        @tween.start()
+
+    if @raisedPosition >= 1
+      @sprite.z = @defaultz + 1000
+    else
+      @sprite.z = @defaultz
 
     this.updateBlockDisplay()
 
-  collidable: (v) ->    
-    @isCollidable = v if v?
+  collidable: (v) ->
+    if v?
+      @isCollidable = v
+      if @isCollidable
+        game.physics.arcade.enable(@sprite)
+        @sprite.body.immovable = true
+        @sprite.body.setSize(64, 64, 0, 32);
+        
     @isCollidable
 
 allOnOne =
@@ -73,46 +87,63 @@ allOnOne =
     x + (y * LEVEL_TILE_SIZE.width)
 
   getTile: (x,y) ->
-    index = x + (y * LEVEL_TILE_SIZE.width)
+    index = x + (y * (LEVEL_TILE_SIZE.width))
     this.tiles[index]
 
+  getZIndex: (x,y) ->
+    x + (y * (LEVEL_TILE_SIZE.width + 1))
+
   createTiles: () ->
-    for x in [0...LEVEL_TILE_SIZE.width]
-      for y in [0...LEVEL_TILE_SIZE.height]
+    for y in [0...LEVEL_TILE_SIZE.height]
+      for x in [0...LEVEL_TILE_SIZE.width]
         type = Math.floor(Math.random() * 5)
-        tile = new LevelTile(x, y, type)
+        z = this.getZIndex(x, y)
+        tile = new LevelTile(x, y, z, type)
         this.tiles.push(tile)
         
         tileIndex = this.getTileIndex(x,y)
         collidable = level[tileIndex] > 0
         tile.collidable(collidable)
-        #tile.collidable(level[this.getTileIndex(x,y)] > 0)
 
   preload: () ->
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 96)
     game.load.image('player', '../content/sprites/player.png')
 
   create: () ->
+    game.physics.startSystem(Phaser.Physics.ARCADE)
+
+    player = game.add.sprite(256, 640, 'player')
+    game.physics.arcade.enable(player);
+    player.body.setSize(30, 30, 17, 17);
+    player.body.collideWorldBounds = true;
     cursors = game.input.keyboard.createCursorKeys()
     this.createTiles()
-    player = game.add.sprite(256, 640, 'player')
-    game.physics.enable(player, Phaser.Physics.ARCADE)
+
+    game.world.bringToTop(player);
   
-  update: (t) ->
-    if (cursors.left.isDown)
+  update: () ->
+    player.z = 500
+
+    for tile in this.tiles
+      if tile.collidable()
+        game.physics.arcade.collide(player, tile.sprite)
+
+    if cursors.left.isDown
       player.body.velocity.x = -150
-    else if (cursors.right.isDown)
+    else if cursors.right.isDown
   	  player.body.velocity.x = 150
     else
       player.body.velocity.x = 0
 
-    if (cursors.up.isDown)
+    if cursors.up.isDown
       player.body.velocity.y = -150
-    else if (cursors.down.isDown)
+    else if cursors.down.isDown
       player.body.velocity.y = 150
     else
       player.body.velocity.y = 0
 
     tile.update() for tile in this.tiles
 
-game = new Phaser.Game 1280, 720, Phaser.WEBGL, '', allOnOne
+    game.world.sort()
+
+game = new Phaser.Game 1280, 736, Phaser.WEBGL, '', allOnOne
