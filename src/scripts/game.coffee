@@ -39,6 +39,7 @@ debug = true
 cursors = null
 player = null
 chest = null
+derp = true
 
 LEVEL_TILE_SIZE =
   width: 20
@@ -260,6 +261,8 @@ allOnOne =
 
     @player.update()
     tile.update() for tile in @tiles
+
+    game.physics.arcade.collide(@player.sprite, chest, () => @updateLevel(levels[1]))
 
     game.world.sort()
 
