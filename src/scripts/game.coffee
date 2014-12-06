@@ -28,6 +28,7 @@ level2 = [
 
 cursors = null
 player = null
+chest = null
 
 LEVEL_TILE_SIZE =
   width: 20
@@ -126,22 +127,25 @@ allOnOne =
   preload: () ->
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 96)
     game.load.spritesheet('player', '../content/sprites/player.png', 64, 64)
+    game.load.image('chest', '../content/sprites/chest.png')
 
   create: () ->
     @tiles = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
     player = game.add.sprite(256, 640, 'player')
+    chest = game.add.sprite(640, 192, 'chest')
     player.animations.add('left', [0, 3, 2, 1], 10, true);
     player.animations.add('right', [4, 5, 6, 7], 10, true);
 
     game.physics.arcade.enable(player);
-    player.body.setSize(30, 30, 17, 17);
+    player.body.setSize(30, 30, 20, 30);
     player.body.collideWorldBounds = true;
     cursors = game.input.keyboard.createCursorKeys()
     this.createTiles()
     this.updateLevel(level)
-    game.world.bringToTop(player);
+
+    game.world.bringToTop(player)
   
   update: () ->
     player.z = 500
@@ -169,6 +173,7 @@ allOnOne =
 
     tile.update() for tile in this.tiles
 
+    game.world.bringToTop(chest)
     game.world.sort()
 
 game = new Phaser.Game 1280, 736, Phaser.WEBGL, '', allOnOne
