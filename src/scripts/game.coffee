@@ -12,6 +12,20 @@ level = [
   1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 ];
 
+level2 = [
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+  1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+]
+
 cursors = null
 player = null
 
@@ -81,14 +95,12 @@ class LevelTile
     @isCollidable
 
 allOnOne =
-  tiles: []
-
   getTileIndex: (x,y) ->
     x + (y * LEVEL_TILE_SIZE.width)
 
   getTile: (x,y) ->
-    index = x + (y * (LEVEL_TILE_SIZE.width))
-    this.tiles[index]
+    result = @tiles[this.getTileIndex(x,y)]
+    result
 
   getZIndex: (x,y) ->
     x + (y * (LEVEL_TILE_SIZE.width + 1))
@@ -99,17 +111,24 @@ allOnOne =
         type = Math.floor(Math.random() * 5)
         z = this.getZIndex(x, y)
         tile = new LevelTile(x, y, z, type)
-        this.tiles.push(tile)
+        @tiles.push(tile)
         
+  updateLevel: (data) ->
+    for y in [0...LEVEL_TILE_SIZE.height]
+      for x in [0...LEVEL_TILE_SIZE.width]
         tileIndex = this.getTileIndex(x,y)
-        collidable = level[tileIndex] > 0
+        console.log("Tile Index", tileIndex)
+        tile = @tiles[tileIndex]
+        console.log(tile)
+        collidable = data[tileIndex] > 0
         tile.collidable(collidable)
-
+    
   preload: () ->
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 96)
     game.load.image('player', '../content/sprites/player.png')
 
   create: () ->
+    @tiles = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
     player = game.add.sprite(256, 640, 'player')
@@ -118,7 +137,7 @@ allOnOne =
     player.body.collideWorldBounds = true;
     cursors = game.input.keyboard.createCursorKeys()
     this.createTiles()
-
+    this.updateLevel(level)
     game.world.bringToTop(player);
   
   update: () ->
