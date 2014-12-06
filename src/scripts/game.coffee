@@ -41,6 +41,11 @@ TILE_PIXEL_SIZE =
 
 TILE_LOWERED_OFFSET = 32
 
+TILE_STATES =
+  Depressed: -1
+  Normal: 0
+  Raised: 1
+
 Helpers =
   rgbToHex: (r, g, b) ->
     result = 0
@@ -49,17 +54,25 @@ Helpers =
     result = result | (Math.floor(b * 255) & 0xFF)
     result
 
+  getTileIndex: (x,y) ->
+    x + (y * LEVEL_TILE_SIZE.width)
+    
   getZIndex: (x,y) ->
     x + (y * (LEVEL_TILE_SIZE.width + 1))
 
   logSprite: (sprite) ->
     console.log(sprite.x + "," + sprite.y + "," + sprite.z) if debug
 
-
-TILE_STATES =
-  Depressed: -1
-  Normal: 0
-  Raised: 1
+  levelDataToString: (tiles) ->
+    result = "["
+    for y in [0...LEVEL_TILE_SIZE.height]
+      result += "\n  "
+      for x in [0...LEVEL_TILE_SIZE.width]
+        state = tiles[Helpers.getTileIndex(x, y)].state()
+        v = " "
+        v = "" if state == -1
+        result += v + state + ","
+    result.substr(0, result.length - 1) + "]"
 
 class LevelTile
   constructor: (x, y, z, blockType) ->
@@ -156,11 +169,7 @@ allOnOne =
     if debug
       debugKey = game.input.keyboard.addKey(Phaser.Keyboard.NUMPAD_0)
       debugKey.onDown.add () =>
-        output = []
-        for y in [0...LEVEL_TILE_SIZE.height]
-          for x in [0...LEVEL_TILE_SIZE.width]
-            output.push(@tiles[@getTileIndex(x,y)].state())
-        console.log JSON.stringify(output)
+        console.log(Helpers.levelDataToString(@tiles))
       
   update: () ->
     player.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((player.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
