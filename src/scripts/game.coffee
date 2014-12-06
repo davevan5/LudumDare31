@@ -37,6 +37,7 @@ levels = [
 debug = true
 
 cursors = null
+wasd = null
 player = null
 chest = null
 derp = true
@@ -177,19 +178,19 @@ class Player
   update: () ->
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
 
-    if cursors.left.isDown
+    if cursors.left.isDown || wasd.left.isDown
       @sprite.body.velocity.x = -150
       @sprite.animations.play('left')
-    else if cursors.right.isDown
+    else if cursors.right.isDown || wasd.right.isDown
       @sprite.body.velocity.x = 150
       @sprite.animations.play('right')
     else
       @sprite.body.velocity.x = 0
 
-    if cursors.up.isDown
+    if cursors.up.isDown || wasd.up.isDown
       @sprite.body.velocity.y = -150
       @sprite.animations.play('up')
-    else if cursors.down.isDown
+    else if cursors.down.isDown || wasd.down.isDown
       @sprite.body.velocity.y = 150
       @sprite.animations.play('down')
     else
@@ -238,11 +239,16 @@ allOnOne =
     chest = game.add.sprite(640, 192, 'chest')
     game.physics.arcade.enable(chest);
     chest.body.setSize(45, 5, 20, 30);
-    chest.body.immovable = true    
-
-
+    chest.body.immovable = true
 
     cursors = game.input.keyboard.createCursorKeys()
+    wasd = {
+      up: game.input.keyboard.addKey(Phaser.Keyboard.W),
+      down: game.input.keyboard.addKey(Phaser.Keyboard.S),
+      left: game.input.keyboard.addKey(Phaser.Keyboard.A),
+      right: game.input.keyboard.addKey(Phaser.Keyboard.D),
+    }
+
     @player = new Player()
     @createTiles()
     @updateLevel(levels[0])
