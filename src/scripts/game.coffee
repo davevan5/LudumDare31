@@ -12,23 +12,44 @@ TILE_PIXEL_SIZE =
   
 class LevelTile
   constructor: (x, y, game) ->
-    @sprite = game.add.sprite(x * 64, y * 64, 'floor')
+    @sprite = game.add.sprite(x * 64, y * 64, 'blocks', 5)
 
   update: () ->
+
+  collidable: (v) ->    
+    if v?
+      @isCollidable = v
+      if @isCollidable == true
+        @sprite.frame = 0
+      else
+        @sprite.frame = 5
+        
+    @isCollidable
 
 allOnOne =
   tiles: []
 
-  createTiles: () ->
-    for x in [0...LEVEL_TILE_SIZE.width]
-      for y in [0...LEVEL_TILE_SIZE.height]
-        this.tiles.push(new LevelTile(x, y, game))
+  getTileIndex: (x,y) ->
+    x + (y * LEVEL_TILE_SIZE.width)
 
   getTile: (x,y) ->
     index = x + (y * LEVEL_TILE_SIZE.width)
     tiles[index]
 
+  createTiles: () ->
+    for x in [0...LEVEL_TILE_SIZE.width]
+      for y in [0...LEVEL_TILE_SIZE.height]
+        tile = new LevelTile(x, y, game)
+        this.tiles.push(tile)
+        
+        tileIndex = this.getTileIndex(x,y)
+        collidable = level[tileIndex] > 0
+        tile.collidable(collidable)
+        alert(tile.collidable())
+        #tile.collidable(level[this.getTileIndex(x,y)] > 0)
+
   preload: () ->
+    game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 96)
     game.load.image('floor', '../content/sprites/floor.png')
     game.load.image('player', '../content/sprites/player.png')
 
