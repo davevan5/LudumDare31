@@ -198,6 +198,16 @@ class Player
     if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
       @sprite.animations.stop()
 
+class Chest
+  constructor: () ->
+    @sprite = game.add.sprite(640, 192, 'chest')
+    game.physics.arcade.enable(@sprite);
+    @sprite.body.setSize(45, 5, 20, 30);
+    @sprite.body.immovable = true    
+
+  update: () ->
+    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, @sprite.y / TILE_PIXEL_SIZE.height)
+  
 # Default game state
 allOnOne =
   getTileIndex: (x,y) ->
@@ -213,6 +223,7 @@ allOnOne =
         z = Helpers.getZIndex(x, y)
         tile = new LevelTile(x, y, z, type)
         @tiles.push(tile)
+        @entities.push(tile)
         
   updateLevel: (level) ->
     @level.cleanup(this) if @level?.cleanup?
@@ -227,24 +238,24 @@ allOnOne =
     @level.start(this) if @level?.start?
     
   preload: () ->
+    game.time.advancedTiming = true
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 128)
     game.load.spritesheet('player', '../content/sprites/player.png', 64, 64)
     game.load.image('chest', '../content/sprites/chest.png')
 
   create: () ->
     @tiles = []
+    @entities = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
-    chest = game.add.sprite(640, 192, 'chest')
-    game.physics.arcade.enable(chest);
-    chest.body.setSize(45, 5, 20, 30);
-    chest.body.immovable = true    
-
-
-
     cursors = game.input.keyboard.createCursorKeys()
-    @player = new Player()
+
     @createTiles()
+    @player = new Player()
+    @chest = new Chest()
+    @entities.push(@player)
+    @entities.push(@chest)
+
     @updateLevel(levels[0])
 
     if debug
@@ -253,17 +264,22 @@ allOnOne =
         console.log(Helpers.levelDataToString(@tiles))
       
   update: () ->
-    chest.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, chest.y / TILE_PIXEL_SIZE.height)
-
+    # Perform updates
+    for entity in @entities
+      entity.update() if entity.update?
+      
+    # Do collision checks
     for tile in @tiles
       if tile.state() != TILE_STATES.Normal
         game.physics.arcade.collide(@player.sprite, tile.sprite)
 
-    @player.update()
-    tile.update() for tile in @tiles
+    game.physics.arcade.collide(@player.sprite, @chest.sprite, () => @updateLevel(levels[1]))
 
-    game.physics.arcade.collide(@player.sprite, chest, () => @updateLevel(levels[1]))
-
+    # Sort sprites and groups in the world, so that z-order is correct
     game.world.sort()
+
+  render: () ->
+    game.debug.text(game.time.fps || '--', 2, 14, "#00ff00"); 
+#    game.debug.renderInputInfo(16, 16)
 
 game = new Phaser.Game 1280, 736, Phaser.WEBGL, '', allOnOne
