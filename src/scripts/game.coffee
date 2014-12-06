@@ -76,19 +76,25 @@ Helpers =
 
 class LevelTile
   constructor: (x, y, z, blockType) ->
+    @blockType = blockType
     @startLocation = { x: x * 64, y: y * 64 }
     @defaultz = z
     @mousePressed = false
-
-    @sprite = game.add.sprite(@startLocation.x, @startLocation.y, 'blocks', blockType)
-    @sprite.z = z
 
     @raisedPosition = 0
     @tweenDirection = 0
     @currState = TILE_STATES.Normal
     @prevState = TILE_STATES.Normal
-    this.updateBlockDisplay()
+    
+    @createSprite()
+
+    @updateBlockDisplay()
+
+    
+  createSprite: () ->
+    @sprite = game.add.sprite(@startLocation.x, @startLocation.y, 'blocks', @blockType)
     game.physics.arcade.enable(@sprite)
+    @sprite.z = @defaultz
     @sprite.body.immovable = true
     @sprite.body.setSize(64, 30, 0, 34);
     @sprite.inputEnabled = true
@@ -98,23 +104,34 @@ class LevelTile
         newState = TILE_STATES.Depressed if newState > 1
         @state(newState)
 
+
   updateBlockDisplay: () ->
     @sprite.position = { x: @startLocation.x, y: @startLocation.y + (TILE_LOWERED_OFFSET * (1 - @raisedPosition)) }
     componentDiff = (0xFF - 0xCC) / 0xFF
     component = 1 - (componentDiff * (1 - @raisedPosition))
     @sprite.tint = Helpers.rgbToHex(component, component, component)
-  
-  update: () ->
-    if @prevState != @currState && @tweenDirection != @currState - @prevState
-      @tweenDirection = @currState - @prevState
-      tween = game.add.tween(this).to({ raisedPosition: @currState }, 1000, Phaser.Easing.Linear.None)
-      tween.onComplete.add () =>
-        @prevState = @currState
-        @tweenDirection = 0
-      tween.start()
 
+  expectedStateDirection: () ->
+    @currState - @prevState
+    
+  hasStateChanged: () ->
+    @prevState != @currState && @tweenDirection != @expectedStateDirection()
+
+  commitState: () ->
+    @prevState = @currState
+
+  onStateChanged: () ->
+    @tweenDirection = @expectedStateDirection()
+    tween = game.add.tween(this).to({ raisedPosition: @currState }, 1000, Phaser.Easing.Linear.None)
+    tween.onComplete.add @commitState
+    tween.start()
+    
+  update: () ->
+    if @hasStateChanged()
+      @onStateChanged()
+      
     @sprite.z = @defaultz
-    this.updateBlockDisplay()
+    @updateBlockDisplay()
 
   state: (v) ->
     if v?
@@ -130,7 +147,7 @@ allOnOne =
     x + (y * LEVEL_TILE_SIZE.width)
 
   getTile: (x,y) ->
-    result = @tiles[this.getTileIndex(x,y)]
+    result = @tiles[@getTileIndex(x,y)]
     result
 
   createTiles: () ->
@@ -144,7 +161,7 @@ allOnOne =
   updateLevel: (data) ->
     for y in [0...LEVEL_TILE_SIZE.height]
       for x in [0...LEVEL_TILE_SIZE.width]
-        tileIndex = this.getTileIndex(x,y)
+        tileIndex = @getTileIndex(x,y)
         tile = @tiles[tileIndex]
         tile.state(data[tileIndex])
     
@@ -163,8 +180,8 @@ allOnOne =
     player.body.setSize(40, 64, 10, 0);
     player.body.collideWorldBounds = true;
     cursors = game.input.keyboard.createCursorKeys()
-    this.createTiles()
-    this.updateLevel(level)
+    @createTiles()
+    @updateLevel(level)
     game.world.bringToTop(player);
     if debug
       debugKey = game.input.keyboard.addKey(Phaser.Keyboard.NUMPAD_0)
@@ -174,7 +191,7 @@ allOnOne =
   update: () ->
     player.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((player.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
 
-    for tile in this.tiles
+    for tile in @tiles
       if tile.state() != TILE_STATES.Normal
         game.physics.arcade.collide(player, tile.sprite)
 
@@ -195,7 +212,7 @@ allOnOne =
     else
       player.body.velocity.y = 0
 
-    tile.update() for tile in this.tiles
+    tile.update() for tile in @tiles
 
     game.world.sort()
 
