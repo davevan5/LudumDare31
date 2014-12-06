@@ -125,13 +125,16 @@ allOnOne =
     
   preload: () ->
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 96)
-    game.load.image('player', '../content/sprites/player.png')
+    game.load.spritesheet('player', '../content/sprites/player.png', 64, 64)
 
   create: () ->
     @tiles = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
     player = game.add.sprite(256, 640, 'player')
+    player.animations.add('left', [0, 3, 2, 1], 10, true);
+    player.animations.add('right', [4, 5, 6, 7], 10, true);
+
     game.physics.arcade.enable(player);
     player.body.setSize(30, 30, 17, 17);
     player.body.collideWorldBounds = true;
@@ -149,10 +152,13 @@ allOnOne =
 
     if cursors.left.isDown
       player.body.velocity.x = -150
+      player.animations.play('left')
     else if cursors.right.isDown
-  	  player.body.velocity.x = 150
+      player.body.velocity.x = 150
+      player.animations.play('right')
     else
       player.body.velocity.x = 0
+      player.animations.stop()
 
     if cursors.up.isDown
       player.body.velocity.y = -150
