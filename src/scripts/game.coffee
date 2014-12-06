@@ -137,10 +137,10 @@ allOnOne =
     chest.body.immovable = true
 
     player = game.add.sprite(256, 640, 'player')
-    player.animations.add('left', [0, 3, 0, 1], 5, true);
-    player.animations.add('right', [4, 5, 6, 7], 5, true);
-    player.animations.add('down', [8, 9, 10, 11], 5, true);
-    player.animations.add('up', [12, 13, 14, 15], 5, true);
+    player.animations.add('left', [0, 3, 0, 1], 7, true);
+    player.animations.add('right', [4, 5, 4, 7], 7, true);
+    player.animations.add('down', [8, 9, 10, 11], 7, true);
+    player.animations.add('up', [12, 13, 14, 15], 7, true);
 
     game.physics.arcade.enable(player);
     player.body.setSize(30, 30, 30, 30);
