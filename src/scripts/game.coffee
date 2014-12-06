@@ -20,7 +20,7 @@ allOnOne =
   createTiles: () ->
     for x in [0...LEVEL_TILE_SIZE.width]
       for y in [0...LEVEL_TILE_SIZE.height]
-        tiles.push(new LevelTile x, y, this)
+        this.tiles.push(new LevelTile(x, y, game))
 
   getTile: (x,y) ->
     index = x + (y * LEVEL_TILE_SIZE.width)
@@ -31,7 +31,7 @@ allOnOne =
     game.load.image('player', '../content/sprites/player.png')
 
   create: () ->
-    createTiles
+    this.createTiles()
     game.add.sprite(256, 640, 'player')
   
   update: () ->
