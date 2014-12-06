@@ -117,9 +117,7 @@ allOnOne =
     for y in [0...LEVEL_TILE_SIZE.height]
       for x in [0...LEVEL_TILE_SIZE.width]
         tileIndex = this.getTileIndex(x,y)
-        console.log("Tile Index", tileIndex)
         tile = @tiles[tileIndex]
-        console.log(tile)
         collidable = data[tileIndex] > 0
         tile.collidable(collidable)
     
@@ -144,7 +142,7 @@ allOnOne =
     game.world.bringToTop(player);
   
   update: () ->
-    player.z = 500
+    player.z = this.getZIndex(LEVEL_TILE_SIZE.width, Math.floor(player.y / TILE_PIXEL_SIZE.height)) + 1000
 
     for tile in this.tiles
       if tile.collidable()
