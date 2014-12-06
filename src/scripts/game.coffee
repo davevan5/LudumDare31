@@ -131,14 +131,21 @@ allOnOne =
     @tiles = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
-    player = game.add.sprite(256, 640, 'player')
     chest = game.add.sprite(640, 192, 'chest')
-    player.animations.add('left', [0, 3, 2, 1], 10, true);
-    player.animations.add('right', [4, 5, 6, 7], 10, true);
+    game.physics.arcade.enable(chest);
+    chest.body.setSize(45, 5, 20, 30);
+    chest.body.immovable = true
+
+    player = game.add.sprite(256, 640, 'player')
+    player.animations.add('left', [0, 3, 0, 1], 5, true);
+    player.animations.add('right', [4, 5, 6, 7], 5, true);
+    player.animations.add('down', [8, 9, 10, 11], 5, true);
+    player.animations.add('up', [12, 13, 14, 15], 5, true);
 
     game.physics.arcade.enable(player);
-    player.body.setSize(30, 30, 20, 30);
+    player.body.setSize(30, 30, 30, 30);
     player.body.collideWorldBounds = true;
+
     cursors = game.input.keyboard.createCursorKeys()
     this.createTiles()
     this.updateLevel(level)
@@ -146,7 +153,10 @@ allOnOne =
     game.world.bringToTop(player)
   
   update: () ->
-    player.z = this.getZIndex(LEVEL_TILE_SIZE.width, Math.floor(player.y / TILE_PIXEL_SIZE.height)) + 1000
+    player.z = this.getZIndex(LEVEL_TILE_SIZE.width, player.y / TILE_PIXEL_SIZE.height) + 1000
+    chest.z = this.getZIndex(LEVEL_TILE_SIZE.width, chest.y / TILE_PIXEL_SIZE.height) + 1000
+
+    game.physics.arcade.collide(player, chest)
 
     for tile in this.tiles
       if tile.collidable()
@@ -160,18 +170,21 @@ allOnOne =
       player.animations.play('right')
     else
       player.body.velocity.x = 0
-      player.animations.stop()
 
     if cursors.up.isDown
       player.body.velocity.y = -150
+      player.animations.play('up')
     else if cursors.down.isDown
       player.body.velocity.y = 150
+      player.animations.play('down')
     else
       player.body.velocity.y = 0
 
+    if player.body.velocity.x == 0 && player.body.velocity.y == 0
+      player.animations.stop()
+
     tile.update() for tile in this.tiles
 
-    game.world.bringToTop(chest)
     game.world.sort()
 
 game = new Phaser.Game 1280, 736, Phaser.WEBGL, '', allOnOne
