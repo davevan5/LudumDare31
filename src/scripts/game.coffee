@@ -89,6 +89,7 @@ Helpers =
         result += v + state + ","
     result.substr(0, result.length - 1) + "]"
 
+# LevelTile represents a single tile in the level
 class LevelTile
   constructor: (x, y, z, blockType) ->
     @blockType = blockType
@@ -159,6 +160,44 @@ class LevelTile
 
     @currState
 
+# Player is the player object
+class Player
+  constructor: () ->
+    @sprite = game.add.sprite(256, 640, 'player')
+    @sprite.animations.add('left', [0, 3, 0, 1], 7, true)
+    @sprite.animations.add('right', [4, 5, 4, 7], 7, true)
+    @sprite.animations.add('down', [8, 9, 10, 11], 7, true)
+    @sprite.animations.add('up', [12, 13, 14, 15], 7, true)
+
+    game.physics.arcade.enable(@sprite)
+    @sprite.body.setSize(40, 64, 10, 0)
+    @sprite.body.collideWorldBounds = true
+
+  update: () ->
+    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
+
+    if cursors.left.isDown
+      @sprite.body.velocity.x = -150
+      @sprite.animations.play('left')
+    else if cursors.right.isDown
+      @sprite.body.velocity.x = 150
+      @sprite.animations.play('right')
+    else
+      @sprite.body.velocity.x = 0
+
+    if cursors.up.isDown
+      @sprite.body.velocity.y = -150
+      @sprite.animations.play('up')
+    else if cursors.down.isDown
+      @sprite.body.velocity.y = 150
+      @sprite.animations.play('down')
+    else
+      @sprite.body.velocity.y = 0
+
+    if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
+      @sprite.animations.stop()
+
+# Default game state
 allOnOne =
   getTileIndex: (x,y) ->
     x + (y * LEVEL_TILE_SIZE.width)
@@ -198,57 +237,28 @@ allOnOne =
     chest = game.add.sprite(640, 192, 'chest')
     game.physics.arcade.enable(chest);
     chest.body.setSize(45, 5, 20, 30);
-    chest.body.immovable = true
+    chest.body.immovable = true    
 
-    player = game.add.sprite(256, 640, 'player')
-    player.animations.add('left', [0, 3, 0, 1], 7, true);
-    player.animations.add('right', [4, 5, 4, 7], 7, true);
-    player.animations.add('down', [8, 9, 10, 11], 7, true);
-    player.animations.add('up', [12, 13, 14, 15], 7, true);
 
-    game.physics.arcade.enable(player);
-    player.body.setSize(40, 64, 10, 0);
-    player.body.collideWorldBounds = true;
 
     cursors = game.input.keyboard.createCursorKeys()
+    @player = new Player()
     @createTiles()
     @updateLevel(levels[0])
 
-    game.world.bringToTop(player)
     if debug
       debugKey = game.input.keyboard.addKey(Phaser.Keyboard.NUMPAD_0)
       debugKey.onDown.add () =>
         console.log(Helpers.levelDataToString(@tiles))
       
   update: () ->
-    player.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((player.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
     chest.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, chest.y / TILE_PIXEL_SIZE.height)
 
     for tile in @tiles
       if tile.state() != TILE_STATES.Normal
-        game.physics.arcade.collide(player, tile.sprite)
+        game.physics.arcade.collide(@player.sprite, tile.sprite)
 
-    if cursors.left.isDown
-      player.body.velocity.x = -150
-      player.animations.play('left')
-    else if cursors.right.isDown
-      player.body.velocity.x = 150
-      player.animations.play('right')
-    else
-      player.body.velocity.x = 0
-
-    if cursors.up.isDown
-      player.body.velocity.y = -150
-      player.animations.play('up')
-    else if cursors.down.isDown
-      player.body.velocity.y = 150
-      player.animations.play('down')
-    else
-      player.body.velocity.y = 0
-
-    if player.body.velocity.x == 0 && player.body.velocity.y == 0
-      player.animations.stop()
-
+    @player.update()
     tile.update() for tile in @tiles
 
     game.world.sort()
