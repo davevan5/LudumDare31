@@ -6,8 +6,12 @@ debug = true
 cursors = null
 wasd = null
 slime = null
-derp = true
 shakeWorld = 0
+
+PI = Math.PI
+QUARTER_PI = PI * 0.25
+HALF_PI = PI * 0.5
+THREE_QUARTER_PI = PI * 0.75
 
 LEVEL_TILE_SIZE =
   width: 20
@@ -83,6 +87,15 @@ Helpers =
       n?.apply(null, arguments)
       o?.apply(null, arguments)
 
+  getDirectionFromAngle: (angle) ->
+    if angle >= -QUARTER_PI && angle < QUARTER_PI
+      DIRECTION.right
+    else if (angle >= THREE_QUARTER_PI && angle <= PI) || (angle >= -PI && angle < -THREE_QUARTER_PI)
+      DIRECTION.left
+    else if angle >= QUARTER_PI && angle < THREE_QUARTER_PI
+      DIRECTION.down
+    else
+      DIRECTION.up
   zeroTimeout: (c) ->
     setTimeout(c, 0)
 
@@ -121,6 +134,30 @@ class ForceMoveDirection
 
   hasFinished: 
     true
+
+class ForceKnockbackMove extends ForceMoveDirection
+  constructor: (amount, direction, callback) ->
+    @direction = direction
+    super(amount, callback)
+
+  onMoveableAssigned: () ->
+    @start = game.time.now
+
+  move: () ->
+    switch @direction
+      when DIRECTION.left
+        @moveable.sprite.body.velocity.x = -@amount
+      when DIRECTION.right
+        @moveable.sprite.body.velocity.x = @amount
+      when DIRECTION.up
+        @moveable.sprite.body.velocity.y = -@amount
+      when DIRECTION.down
+        @moveable.sprite.body.velocity.y = @amount
+
+    super()
+
+  hasFinished: () ->
+    game.time.now > @start + 250
 
 class ForceMoveDirectionUp extends ForceMoveDirection
   constructor: (amount, callback) ->
@@ -343,8 +380,11 @@ class Player extends Moveable
     if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
       @sprite.animations.stop()
 
-  takeDamage: (dmg) ->
-    @health = @health - dmg
+  takeDamage: (source) ->
+    unless @activeForceMove?
+      direction = Helpers.getDirectionFromAngle(Phaser.Math.angleBetweenPoints(source.sprite.position, @sprite.position))
+      @forceMove(new ForceKnockbackMove(300, direction, () -> {}))
+      @health = @health - source.damage
 
 class Chest
   constructor: () ->
@@ -371,6 +411,7 @@ class Monster
 
     game.physics.arcade.enable(@sprite)
     @sprite.body.setSize(40, 64, 10, 0)
+    @sprite.body.immovable = true
 
   update: () ->
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
@@ -549,7 +590,7 @@ allOnOne =
 
     for monster in @monsterEntities
       game.physics.arcade.collide(
-        @player.sprite, monster.sprite, () => @player.takeDamage(monster.damage))
+        @player.sprite, monster.sprite, () => @player.takeDamage(monster))
 
     game.physics.arcade.collide(@player.sprite, @chest.sprite, () => @levelTransition())
 
