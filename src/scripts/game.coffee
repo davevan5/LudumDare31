@@ -1,7 +1,7 @@
 window.Game = {} unless window.Game
 
 # Set to true to enable debug features
-debug = true
+debug = false
 
 cursors = null
 wasd = null
@@ -574,6 +574,7 @@ allOnOne =
   updateLevel: (level) ->
     for monster in @monsterEntities
         monster.sprite.kill()
+    @monsterEntities = []
 
     @level?.cleanup?(this)
     @level = level

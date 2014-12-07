@@ -8,7 +8,7 @@ window.Game.levels = [
       1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
       1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1,-1, 1, 1, 1, 0, 1,
       1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1,
-      1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1,
+      1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1,
       1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,-1, 0, 1, 0, 0, 0, 0, 0, 1,
       1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1,-1, 1, 1, 1, 0, 1,
       1, 0, 0, 0, 0, 0, 0, 1, 0, 1,-1, 1, 0, 0, 0, 1, 0, 0, 0, 1,
@@ -17,10 +17,11 @@ window.Game.levels = [
     ]
     trap: null
     start: (state) ->
-      state.monsterEntities.push(new Game.Monster(16, 5, 'slime', 20, 1))
+      state.monsterEntities.push(new Game.Monster(2, 4, 'slime', 20, 1))
       state.player.sprite.body.collideWorldBounds = false
       Game.Helpers.spideyPlaceChestOnTile(state, 17, 8)
-      state.player.sprite.position = Game.Helpers.getEntityPositionForTile(4, 13)
+      state.player.sprite.position =
+       Game.Helpers.getEntityPositionForTile(4, 13)
       state.player.forceMove(new Game.ForceMoveDirectionUp(256, () =>
         state.player.inputActive = false
         state.getTile(4, 10).state(Game.TILE_STATES.Raised)
