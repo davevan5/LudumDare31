@@ -16,7 +16,7 @@ levels = [
     start: (state) ->
       state.monsterEntities.push(new Monster(16, 5, 'slime', 20, 5))
       state.player.sprite.body.collideWorldBounds = false
-      state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
+      Helpers.spideyPlaceChestOnTile(state, 17, 8)
       state.player.sprite.position = Helpers.getEntityPositionForTile(4, 13)
       state.player.forceMove(new ForceMoveDirectionUp(256, () ->
         state.player.inputActive = false
@@ -39,11 +39,7 @@ levels = [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
-      state.spider.setTarget(Helpers.getEntityPositionForTile(2, 2))
-      state.spider.resetPosition()
-      state.spider.lowerToTarget(() ->
-        state.spider.releaseChest(state.chest)
-        state.spider.raiseFromTarget())
+      Helpers.spideyPlaceChestOnTile(state, 2, 2)
     cleanup: null
   }
 ]
@@ -85,6 +81,15 @@ DIRECTION =
   none: 4
 
 Helpers =
+  spideyPlaceChestOnTile: (state, tileX, tileY, callback) ->
+    state.spider.grabChest(state.chest)
+    state.spider.setTarget(Helpers.getEntityPositionForTile(tileX, tileY))
+    state.spider.resetPosition()
+    state.spider.lowerToTarget(() ->
+      state.spider.releaseChest(state.chest)
+      state.spider.raiseFromTarget(callback))
+
+
   getEntityPositionForTile: (tileX, tileY) ->
       x: tileX * TILE_PIXEL_SIZE.width
       y: tileY * TILE_PIXEL_SIZE.height + TILE_LOWERED_OFFSET
@@ -469,8 +474,6 @@ class SpiderThief extends Moveable
     chest.sprite.anchor = { x: 0, y: 0 }
     chest.forceZ = null
     
-    
-
   update: () ->
     super()
 
