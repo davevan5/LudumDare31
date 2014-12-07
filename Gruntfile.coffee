@@ -3,23 +3,20 @@ module.exports = (grunt) ->
     pkg: grunt.file.readJSON 'package.json'
     gitinfo: {}
     coffee:
-      glob_to_multiple:
+      options:
+        sourceMap: true
+      glob_to_multiple:        
         expand: true,
         flatten: true,
         cwd: 'src/scripts',
         src: ['*.coffee'],
-        dest: 'tmp/scripts/',
+        dest: 'build/scripts/',
         ext: '.js'
-    requirejs:
-      compile:
-        options:
-          baseUrl: "./tmp/scripts"
-          name: "main"
-          out: "build/scripts/main.js"
     clean: ["tmp/", "build/", "./*.tar.gz"]
     copy:
       main:
         files: [
+          { expand: true, src: ['src/scripts/**/*.coffee'], dest: 'build' }
           { src: ["src/index.html"], dest: "build/index.html" },
           { expand: true, cwd: "src/content/", src: ['*', '**'], dest: "build/content/"}
         ]
@@ -38,5 +35,5 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-compress'
   grunt.loadNpmTasks 'grunt-gitinfo'
 
-  grunt.registerTask 'default', ['gitinfo', 'coffee', 'requirejs', 'copy']
+  grunt.registerTask 'default', ['gitinfo', 'coffee', 'copy']
   grunt.registerTask 'dist', ['default', 'compress']
