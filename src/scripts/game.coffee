@@ -1,48 +1,5 @@
-levels = [
-  {
-    data: [
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1,
-      1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1,-1, 1, 1, 1, 0, 1,
-      1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1,
-      1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1,
-      1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,-1, 0, 1, 0, 0, 0, 0, 0, 1,
-      1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1,-1, 1, 1, 1, 0, 1,
-      1, 0, 0, 0, 0, 0, 0, 1, 0, 1,-1, 1, 0, 0, 0, 1, 0, 0, 0, 1,
-      1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1,
-      1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-    ]
-    start: (state) ->
-      state.monsterEntities.push(new Monster(16, 5, 'slime', 20, 5))
-      state.player.sprite.body.collideWorldBounds = false
-      Helpers.spideyPlaceChestOnTile(state, 17, 8)
-      state.player.sprite.position = Helpers.getEntityPositionForTile(4, 13)
-      state.player.forceMove(new ForceMoveDirectionUp(256, () ->
-        state.player.inputActive = false
-        state.getTile(4, 10).state(TILE_STATES.Raised)
-        next = -> state.player.forceMove(new ForceMoveDirectionDown(0, -> state.player.sprite.body.collideWorldBounds = true))
-        setTimeout(next, 1250)))
-    cleanup: null
-  }, {
-    data: [
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
-      1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-      1, 0, 0, 0,-1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1,
-      1, 1, 0, 1,-1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 0, 0, 0, 0,-1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1,-1, 1, 1,
-      1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,-1, 0, 0, 0, 0, 1,
-      1,-1, 0, 0, 0, 0, 0,-1, 0, 0, 0, 1, 0, 0,-1, 0, 1, 1, 1, 1,
-      1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1,
-      1, 0, 0, 0,-1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-    ]
-    start: (state) ->
-      Helpers.spideyPlaceChestOnTile(state, 2, 2)
-    cleanup: null
-  }
-]
+window.Game = {} unless window.Game
+
 # Set to true to enable debug features
 debug = true
 
@@ -516,7 +473,7 @@ allOnOne =
     @currentLevel++ if @currentLevel?
     @currentLevel = 0 unless @currentLevel?
 
-    @updateLevel(levels[@currentLevel])
+    @updateLevel(window.Game.levels[@currentLevel])
 
   levelTransition: () ->
     unless @transitioning
@@ -612,3 +569,13 @@ allOnOne =
 #    game.debug.renderInputInfo(16, 16)
 
 game = new Phaser.Game 1280, 736, Phaser.WEBGL, '', allOnOne
+
+window.Game.game = game
+window.Game.TILE_STATES = TILE_STATES
+window.Game.Helpers = Helpers
+window.Game.Monster = Monster
+window.Game.ForceMoveDirection = ForceMoveDirection
+window.Game.ForceMoveDirectionUp = ForceMoveDirectionUp
+window.Game.ForceMoveDirectionDown = ForceMoveDirectionDown
+window.Game.ForceMoveDirectionLeft = ForceMoveDirectionLeft
+window.Game.ForceMoveDirectionRight = ForceMoveDirectionRight
