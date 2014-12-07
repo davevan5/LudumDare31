@@ -39,7 +39,11 @@ levels = [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
-      state.chest.sprite.position = Helpers.getEntityPositionForTile(2, 2)
+      state.spider.setTarget(Helpers.getEntityPositionForTile(2, 2))
+      state.spider.resetPosition()
+      state.spider.lowerToTarget(() ->
+        state.spider.releaseChest(state.chest)
+        state.spider.raiseFromTarget())
     cleanup: null
   }
 ]
@@ -91,7 +95,7 @@ Helpers =
     result = result | (Math.floor(g * 255) & 0xFF) << 8
     result = result | (Math.floor(b * 255) & 0xFF)
     result
-
+    
   getTileIndex: (x,y) ->
     x + (y * LEVEL_TILE_SIZE.width)
     
@@ -116,6 +120,9 @@ Helpers =
     () ->
       n?.apply(null, arguments)
       o?.apply(null, arguments)
+
+  zeroTimeout: (c) ->
+    setTimeout(c, 0)
 
 
 class KeymapEntry
@@ -385,7 +392,11 @@ class Chest
     @sprite.body.immovable = true    
 
   update: () ->
-    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
+    if @forceZ?
+      @sprite.z = @forceZ
+    else
+      @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
+      
 
 class Monster
   constructor: (x, y, type, health, damage) ->
@@ -394,7 +405,7 @@ class Monster
 
     @sprite = game.add.sprite(0, 0, type)
     @sprite.position = Helpers.getEntityPositionForTile(x, y)
-    @sprite.animations.add('idle', [0, 1, 2, 3, 4, 5, 6, 7], 7, true)
+    @sprite.animations.add('idle', [0, 1, 2, 3, 4, 5, 6, 7], 4, true)
 
     game.physics.arcade.enable(@sprite)
     @sprite.body.setSize(40, 64, 10, 0)
@@ -406,11 +417,65 @@ class Monster
   takeDamage: (dmg) ->
     @health = @health - dmg
 
-class SpiderThief
+class SpiderThief extends Moveable
   constructor: () ->
-    @sprite = game.add.sprite(-100, -100, 'spiderThief')
+    @sprite = game.add.sprite(-100, -100, 'spiderThief', @sprite)
+    @sprite.animations.add('wriggle', [0, 1, 2, 3, 2, 1], 7, true)
+    @sprite.animations.play('wriggle')
+    game.physics.arcade.enable(@sprite)
+    
+  setTarget: (p) ->
+    @targetPosition =
+      x: p.x - 32
+      y: p.y - 32
+    @forceZ = Helpers.getZIndex(
+      LEVEL_TILE_SIZE.width,
+      Math.floor((p.y + 32) / TILE_PIXEL_SIZE.height)) + 0.8
+
+  onMoveDown: () ->
+    @sprite.body.velocity.y = 250
+
+  onMoveUp: () ->
+    @sprite.body.velocity.y = -250
+
+  onMoveStop: () ->
+    @sprite.body.velocity.y = 0
+
+  resetPosition: () ->
+    @sprite.position =
+      x: @targetPosition.x
+      y: -128
+
+
+  lowerToTarget: (callback) ->
+    @forceMove(new ForceMoveDirectionDown(@targetPosition.y - @sprite.position.y, callback))
+
+  raiseFromTarget: (callback) ->
+    @forceMove(new ForceMoveDirectionUp(Math.abs(-128 - @targetPosition.y), callback))
+
+  grabChest: (chest) ->
+    chest.sprite.anchor = { x: 0, y: 0 }
+    chest.sprite.position = { x: 32, y: 0 }
+    chest.sprite.z = 0
+    chest.forceZ = 0
+    @sprite.addChild(chest.sprite)
+
+  releaseChest: (chest) ->
+    apos = chest.sprite.toGlobal({x: 0, y: 0})
+    apos.y += 32
+    @sprite.removeChild(chest.sprite)
+    game.world.add(chest.sprite)
+    chest.sprite.position = apos
+    chest.sprite.anchor = { x: 0, y: 0 }
+    chest.forceZ = null
+    
+    
 
   update: () ->
+    super()
+
+    @sprite.z = @forceZ
+
       
 # Default game state
 allOnOne =
@@ -451,10 +516,15 @@ allOnOne =
     @updateLevel(levels[@currentLevel])
 
   levelTransition: () ->
-    return if @transitioning
-    @transitioning = true
-    @nextLevel()
-    @transitioning = false
+    unless @transitioning
+      @transitioning = true
+      @spider.setTarget(@chest.sprite.position)
+      @spider.resetPosition()
+      @spider.lowerToTarget(() =>
+        @spider.grabChest(@chest)
+        @spider.raiseFromTarget(() =>
+          @nextLevel()
+          @transitioning = false))
     
   preload: () ->
     game.time.advancedTiming = true
@@ -462,6 +532,7 @@ allOnOne =
     game.load.spritesheet('player', '../content/sprites/player.png', 64, 64)
     game.load.image('chest', '../content/sprites/chest.png')
     game.load.spritesheet('slime', '../content/sprites/slime.png', 64, 64)
+    game.load.spritesheet('spiderThief', '../content/sprites/spider.png', 128 ,128)
 
   setupKeyboard: () ->
     addToKeyMap = (maps) ->
@@ -487,8 +558,10 @@ allOnOne =
     @createTiles()
     @player = new Player()
     @chest = new Chest()
+    @spider = new SpiderThief()
     @criticalEntities.push(@player)
     @criticalEntities.push(@chest)
+    @criticalEntities.push(@spider)
     @nextLevel()
 
     if debug
