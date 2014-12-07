@@ -5,7 +5,6 @@ debug = true
 
 cursors = null
 wasd = null
-slime = null
 shakeWorld = 0
 
 PI = Math.PI
@@ -313,7 +312,7 @@ class Player extends Movable
   MOVEMENT_SPEED: 150
   
   constructor: () ->
-    @health = 100
+    @health = new HealthMeter(10, 10, 6)
 
     @inputActive = true
     
@@ -327,7 +326,6 @@ class Player extends Movable
     @sprite.body.setSize(40, 64, 10, 0)
     @activeForceMove = null
     @sprite.body.collideWorldBounds = true
-    @sprite.body.immovable = true
 
   onMoveUp: () ->
     @sprite.body.velocity.y = -@MOVEMENT_SPEED
@@ -349,7 +347,6 @@ class Player extends Movable
     @sprite.body.velocity.x = 0
     @sprite.body.velocity.y = 0
     @sprite.animations.stop()
-
 
   handleInput: () ->
     if keymap.left.isDown()
@@ -385,7 +382,45 @@ class Player extends Movable
     unless @activeForceMove?
       direction = Helpers.getDirectionFromAngle(Phaser.Math.angleBetweenPoints(source.sprite.position, @sprite.position))
       @forceMove(new ForceKnockbackMove(300, direction, () -> {}))
-      @health = @health - source.damage
+      @health.update(source.damage)
+
+HEART_STATES =
+  full: 0
+  half: 1
+  empty: 2
+
+class HealthMeter
+  constructor: (x, y, max) ->
+    @hearts = []
+    @max = max
+    @current = max
+
+    @hearts.push(new Heart(x, y, i, 0)) for i in [0...@max / 2]
+      
+
+  update: (damage) ->
+    @current -= damage
+
+    floor = Math.floor(@current / 2)
+    ceiling = Math.ceil(@current / 2)
+
+    for i in [0...@max / 2]
+      if i < floor
+        @hearts[i].setState(HEART_STATES.full)
+      else if i == floor && floor != ceiling
+        @hearts[i].setState(HEART_STATES.half)
+      else
+        @hearts[i].setState(HEART_STATES.empty)
+
+
+class Heart
+  constructor: (x, y, index, state) ->
+    @sprite = game.add.sprite(x + (32 * index), y, 'heart', state)
+    @sprite.z = 100000
+
+  setState: (state) ->
+    @sprite.frame = state
+
 
 class Chest
   constructor: () ->
@@ -534,6 +569,7 @@ allOnOne =
     game.time.advancedTiming = true
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 128)
     game.load.spritesheet('player', '../content/sprites/player.png', 64, 64)
+    game.load.spritesheet('heart', '../content/sprites/heart.png', 32, 32)
     game.load.image('chest', '../content/sprites/chest.png')
     game.load.spritesheet('slime', '../content/sprites/slime.png', 64, 64)
     game.load.spritesheet('spiderThief', '../content/sprites/spider.png', 128 ,128)
