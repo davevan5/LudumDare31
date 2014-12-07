@@ -15,6 +15,13 @@ levels = [
     ]
     start: (state) ->
       state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
+      state.player.sprite.position = Helpers.getEntityPositionForTile(4, 13)
+      state.player.forceMove(DIRECTION.up, 256, () ->
+        state.player.inputActive = false
+        state.getTile(4, 10).state(TILE_STATES.Raised)
+        next =  -> state.player.forceMove(DIRECTION.down, 0, -> state.player.sprite.body.collideWorldBounds = true)
+        setTimeout(next, 1250)
+      )
     cleanup: null
   }, {
     data: [
@@ -64,6 +71,13 @@ SHADOW_COLOR =
 
 BLOCK_TYPES = 4
 
+DIRECTION =
+  up: 0
+  down: 1
+  left: 2
+  right: 3
+  none: 4
+
 Helpers =
   getEntityPositionForTile: (tileX, tileY) ->
       x: tileX * TILE_PIXEL_SIZE.width
@@ -95,6 +109,64 @@ Helpers =
         v = "" if state == -1
         result += v + state + ","
     result.substr(0, result.length - 1) + "]"
+
+class ForceMoveDirection
+  constructor: (moveable, amount) ->
+    @moveable = moveable
+    @amount = amount
+
+  hasFinished: 
+    true
+
+class ForceMoveDirectionUp extends ForceMoveDirection
+  constructor: (moveable, amount) ->
+    super(moveable, amount)
+    @start = moveable.sprite.y
+
+  move: () ->
+    @moveable.move(DIRECTION.up)
+    
+  hasFinished: () ->
+    @moveable.sprite.y < @start - @amount
+ 
+class ForceMoveDirectionDown extends ForceMoveDirection
+  constructor: (moveable, amount) ->
+    super(moveable, amount)
+    @start = moveable.sprite.y
+
+  move: () ->
+    @moveable.move(DIRECTION.down)
+    
+  hasFinished: () ->
+    @moveable.sprite.y > @start + @amount
+
+class ForceMoveDirectionLeft extends ForceMoveDirection
+  constructor: (moveable, amount) ->
+    super(moveable, amount)
+    @start = moveable.sprite.x
+
+  move: () ->
+    @moveable.move(DIRECTION.left)
+    
+  hasFinished: () ->
+    @moveable.sprite.x < @start - @amount
+
+class ForceMoveDirectionRight extends ForceMoveDirection
+  constructor: (moveable, amount) ->
+    super(moveable, amount)
+    @start = moveable.sprite.x
+
+  move: () ->
+    @moveable.move(DIRECTION.right)
+    
+  hasFinished: () ->
+    @moveable.sprite.x > @start + @amount
+
+FORCEMOVE_DIRECTION_MAP = {}
+FORCEMOVE_DIRECTION_MAP[DIRECTION.left] = ForceMoveDirectionLeft
+FORCEMOVE_DIRECTION_MAP[DIRECTION.right] = ForceMoveDirectionRight
+FORCEMOVE_DIRECTION_MAP[DIRECTION.up] = ForceMoveDirectionUp
+FORCEMOVE_DIRECTION_MAP[DIRECTION.down] = ForceMoveDirectionDown
 
 # LevelTile represents a single tile in the level
 class LevelTile
@@ -169,7 +241,11 @@ class LevelTile
 
 # Player is the player object
 class Player
+  MOVEMENT_SPEED: 150
+  
   constructor: () ->
+    @inputActive = true
+    
     @sprite = game.add.sprite(256, 640, 'player')
     @sprite.animations.add('left', [0, 3, 0, 1], 7, true)
     @sprite.animations.add('right', [4, 5, 4, 7], 7, true)
@@ -178,28 +254,64 @@ class Player
 
     game.physics.arcade.enable(@sprite)
     @sprite.body.setSize(40, 64, 10, 0)
-    @sprite.body.collideWorldBounds = true
+    @activeForceMove = null
+    #@sprite.body.collideWorldBounds = true
 
-  update: () ->
-    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
+  move: (direction) ->
+    switch direction
+      when DIRECTION.up
+        @sprite.body.velocity.y = -@MOVEMENT_SPEED
+        @sprite.animations.play('up')
+      when DIRECTION.down
+        @sprite.body.velocity.y = @MOVEMENT_SPEED
+        @sprite.animations.play('down')
+      when DIRECTION.left
+        @sprite.body.velocity.x = -@MOVEMENT_SPEED
+        @sprite.animations.play('left')
+      when DIRECTION.right
+        @sprite.body.velocity.x = @MOVEMENT_SPEED
+        @sprite.animations.play('right')
+      else
+        @sprite.body.velocity.x = 0
+        @sprite.body.velocity.y = 0
+        @sprite.animations.stop()
 
+
+  handleInput: () ->
     if cursors.left.isDown
-      @sprite.body.velocity.x = -150
-      @sprite.animations.play('left')
+      @move(DIRECTION.left)
     else if cursors.right.isDown
-      @sprite.body.velocity.x = 150
-      @sprite.animations.play('right')
+      @move(DIRECTION.right)
     else
       @sprite.body.velocity.x = 0
 
     if cursors.up.isDown
-      @sprite.body.velocity.y = -150
-      @sprite.animations.play('up')
+      @move(DIRECTION.up)
     else if cursors.down.isDown
-      @sprite.body.velocity.y = 150
-      @sprite.animations.play('down')
+      @move(DIRECTION.down)
     else
       @sprite.body.velocity.y = 0
+
+  forceMove: (direction, amount, callback) ->
+    type = FORCEMOVE_DIRECTION_MAP[direction]
+    
+    if type?
+      @activeForceMove = new type(this, amount)
+      @activeForceMove.callback = callback
+      @inputActive = false
+    
+  update: () ->
+    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
+
+    @handleInput() if @inputActive
+
+    if @activeForceMove?
+      @activeForceMove.move()
+      if @activeForceMove.hasFinished()
+        @move(DIRECTION.none)
+        @inputActive = true
+        @activeForceMove.callback?(this)
+        @activeForceMove = null
 
     if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
       @sprite.animations.stop()
