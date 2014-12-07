@@ -1,6 +1,6 @@
 levels = [
   {
-    data:  [
+    data: [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
       1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1,
       1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -14,8 +14,8 @@ levels = [
       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
+      state.monsterEntities.push(new Monster(16, 5, 'slime', 20, 5))
       state.player.sprite.body.collideWorldBounds = false
-      state.monsterEntities.push(new Monster('slime', 20))
       state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
       state.player.sprite.position = Helpers.getEntityPositionForTile(4, 13)
       state.player.forceMove(new ForceMoveDirectionUp(256, () ->
@@ -27,19 +27,19 @@ levels = [
   }, {
     data: [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-      1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+      1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
+      1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+      1, 0, 0, 0,-1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1,
+      1, 1, 0, 1,-1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1,
+      1, 0, 0, 0, 0, 0,-1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1,-1, 1, 1,
+      1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,-1, 0, 0, 0, 0, 1,
+      1,-1, 0, 0, 0, 0, 0,-1, 0, 0, 0, 1, 0, 0,-1, 0, 1, 1, 1, 1,
+      1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1,
+      1, 0, 0, 0,-1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
-      state.chest.sprite.position = Helpers.getEntityPositionForTile(1, 1)
+      state.chest.sprite.position = Helpers.getEntityPositionForTile(2, 2)
     cleanup: null
   }
 ]
@@ -50,6 +50,7 @@ cursors = null
 wasd = null
 slime = null
 derp = true
+shakeWorld = 0
 
 LEVEL_TILE_SIZE =
   width: 20
@@ -256,6 +257,7 @@ class LevelTile
   commitState: () ->
     @prevState = @currState
     @tweenDirection = 0
+    shakeWorld = 0
 
   onStateChanged: () ->
     @tweenDirection = @expectedStateDirection()
@@ -372,9 +374,6 @@ class Player extends Moveable
     if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
       @sprite.animations.stop()
 
-  getHealth: () ->
-    @health
-
   takeDamage: (dmg) ->
     @health = @health - dmg
 
@@ -389,9 +388,12 @@ class Chest
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
 
 class Monster
-  constructor: (type, health) ->
+  constructor: (x, y, type, health, damage) ->
     @health = health
-    @sprite = game.add.sprite(1000, 192, type)
+    @damage = damage
+
+    @sprite = game.add.sprite(0, 0, type)
+    @sprite.position = Helpers.getEntityPositionForTile(x, y)
     @sprite.animations.add('idle', [0, 1, 2, 3, 4, 5, 6, 7], 7, true)
 
     game.physics.arcade.enable(@sprite)
@@ -400,9 +402,6 @@ class Monster
   update: () ->
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
     @sprite.animations.play('idle')
-
-  getHealth: () ->
-    @health
 
   takeDamage: (dmg) ->
     @health = @health - dmg
@@ -431,9 +430,12 @@ allOnOne =
         @entities.push(tile)
         
   updateLevel: (level) ->
+    for monster in @monsterEntities
+        monster.sprite.kill()
+
     @level?.cleanup?(this)
     @level = level
-    
+    shakeWorld = 1
     for y in [0...LEVEL_TILE_SIZE.height]
       for x in [0...LEVEL_TILE_SIZE.width]
         tileIndex = @getTileIndex(x,y)
@@ -490,7 +492,7 @@ allOnOne =
     @nextLevel()
 
     if debug
-      debugKey = game.input.keyboard.addKey(Phaser.Keyboard.NUMPAD_0)
+      debugKey = game.input.keyboard.addKey(Phaser.Keyboard.TILDE)
       debugKey.onDown.add () =>
         console.log(Helpers.levelDataToString(@tiles))
         
@@ -509,14 +511,28 @@ allOnOne =
     for tile in @tiles
       if tile.state() != TILE_STATES.Normal
         game.physics.arcade.collide(@player.sprite, tile.sprite)
+        for monster in @monsterEntities
+          game.physics.arcade.collide(monster.sprite, tile.sprite)
+
+    for monster in @monsterEntities
+      game.physics.arcade.collide(
+        @player.sprite, monster.sprite, () => @player.takeDamage(monster.damage))
 
     game.physics.arcade.collide(@player.sprite, @chest.sprite, () => @levelTransition())
+
+    #if shakeWorld > 0
+    #  @rand1 = game.rnd.integerInRange(-20,20)
+    #  @rand2 = game.rnd.integerInRange(-20,20)
+    #  game.world.setBounds(@rand1, @rand2, game.width + @rand1, game.height + @rand2)
+
+    #if shakeWorld == 0
+    #  game.world.setBounds(0, 0, game.width, game.height)
 
     # Sort sprites and groups in the world, so that z-order is correct
     game.world.sort()
 
   render: () ->
-    game.debug.text(game.time.fps || '--', 2, 14, "#00ff00"); 
+    game.debug.text(game.time.fps || '--', 2, 14, "#00ff00");
 #    game.debug.renderInputInfo(16, 16)
 
 game = new Phaser.Game 1280, 736, Phaser.WEBGL, '', allOnOne
