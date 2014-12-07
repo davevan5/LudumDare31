@@ -367,7 +367,7 @@ class Monster
 
     @sprite = game.add.sprite(0, 0, type)
     @sprite.position = Helpers.getEntityPositionForTile(x, y)
-    @sprite.animations.add('idle', [0, 1, 2, 3, 4, 5, 6, 7], 4, true)
+    @sprite.animations.add('idle', [0, 1, 2, 3, 4, 5, 6, 7], 14, true)
 
     game.physics.arcade.enable(@sprite)
     @sprite.body.setSize(40, 64, 10, 0)
