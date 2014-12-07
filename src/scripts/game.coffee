@@ -14,6 +14,7 @@ levels = [
       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
+      state.monsterEntities.push(new Monster('slime', 20))
       state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
       state.player.sprite.position = Helpers.getEntityPositionForTile(4, 13)
       state.player.forceMove(DIRECTION.up, 256, () ->
@@ -46,8 +47,8 @@ levels = [
 debug = true
 
 cursors = null
-player = null
-chest = null
+wasd = null
+slime = null
 derp = true
 
 LEVEL_TILE_SIZE =
@@ -241,9 +242,12 @@ class LevelTile
 
 # Player is the player object
 class Player
+
   MOVEMENT_SPEED: 150
   
   constructor: () ->
+    @health = 100
+
     @inputActive = true
     
     @sprite = game.add.sprite(256, 640, 'player')
@@ -278,16 +282,16 @@ class Player
 
 
   handleInput: () ->
-    if cursors.left.isDown
+    if cursors.left.isDown || wasd.left.isDown
       @move(DIRECTION.left)
-    else if cursors.right.isDown
+    else if cursors.right.isDown || wasd.right.isDown
       @move(DIRECTION.right)
     else
       @sprite.body.velocity.x = 0
 
-    if cursors.up.isDown
+    if cursors.up.isDown || wasd.up.isDown
       @move(DIRECTION.up)
-    else if cursors.down.isDown
+    else if cursors.down.isDown || wasd.down.isDown
       @move(DIRECTION.down)
     else
       @sprite.body.velocity.y = 0
@@ -316,6 +320,12 @@ class Player
     if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
       @sprite.animations.stop()
 
+  getHealth: () ->
+    @health
+
+  takeDamage: (dmg) ->
+    @health = @health - dmg
+
 class Chest
   constructor: () ->
     @sprite = game.add.sprite(640, 192, 'chest')
@@ -325,6 +335,25 @@ class Chest
 
   update: () ->
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
+
+class Monster
+  constructor: (type, health) ->
+    @health = health
+    @sprite = game.add.sprite(1000, 192, type)
+    @sprite.animations.add('idle', [0, 1, 2, 3, 4, 5, 6, 7], 7, true)
+
+    game.physics.arcade.enable(@sprite)
+    @sprite.body.setSize(40, 64, 10, 0)
+
+  update: () ->
+    @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
+    @sprite.animations.play('idle')
+
+  getHealth: () ->
+    @health
+
+  takeDamage: (dmg) ->
+    @health = @health - dmg
       
 # Default game state
 allOnOne =
@@ -360,14 +389,22 @@ allOnOne =
     game.load.spritesheet('blocks', '../content/sprites/blocks.png', 64, 128)
     game.load.spritesheet('player', '../content/sprites/player.png', 64, 64)
     game.load.image('chest', '../content/sprites/chest.png')
+    game.load.spritesheet('slime', '../content/sprites/slime.png', 64, 64)
 
   create: () ->
     @tiles = []
     @entities = []
     @criticalEntities = []
+    @monsterEntities = []
     game.physics.startSystem(Phaser.Physics.ARCADE)
 
     cursors = game.input.keyboard.createCursorKeys()
+    wasd = {
+      up: game.input.keyboard.addKey(Phaser.Keyboard.W),
+      down: game.input.keyboard.addKey(Phaser.Keyboard.S),
+      left: game.input.keyboard.addKey(Phaser.Keyboard.A),
+      right: game.input.keyboard.addKey(Phaser.Keyboard.D),
+    }
 
     @createTiles()
     @player = new Player()
@@ -383,6 +420,9 @@ allOnOne =
       
   update: () ->
     for entity in @criticalEntities
+      entity.update?()
+
+    for entity in @monsterEntities
       entity.update?()
     
     # Perform updates
