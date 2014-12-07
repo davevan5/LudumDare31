@@ -128,9 +128,9 @@ class ForceMoveDirection
     if @hasFinished()
       @callback?()
 
-  assignMoveable: (moveable) ->
-    @moveable = moveable
-    @onMoveableAssigned?()
+  assignMovable: (movable) ->
+    @movable = movable
+    @onMovableAssigned?()
 
   hasFinished: 
     true
@@ -140,19 +140,19 @@ class ForceKnockbackMove extends ForceMoveDirection
     @direction = direction
     super(amount, callback)
 
-  onMoveableAssigned: () ->
+  onMovableAssigned: () ->
     @start = game.time.now
 
   move: () ->
     switch @direction
       when DIRECTION.left
-        @moveable.sprite.body.velocity.x = -@amount
+        @movable.sprite.body.velocity.x = -@amount
       when DIRECTION.right
-        @moveable.sprite.body.velocity.x = @amount
+        @movable.sprite.body.velocity.x = @amount
       when DIRECTION.up
-        @moveable.sprite.body.velocity.y = -@amount
+        @movable.sprite.body.velocity.y = -@amount
       when DIRECTION.down
-        @moveable.sprite.body.velocity.y = @amount
+        @movable.sprite.body.velocity.y = @amount
 
     super()
 
@@ -163,57 +163,57 @@ class ForceMoveDirectionUp extends ForceMoveDirection
   constructor: (amount, callback) ->
     super(amount, callback)
 
-  onMoveableAssigned: () ->
-    @start = @moveable.sprite.y
+  onMovableAssigned: () ->
+    @start = @movable.sprite.y
     
   move: () ->
-    @moveable.move(DIRECTION.up)
+    @movable.move(DIRECTION.up)
     super()
     
   hasFinished: () ->
-    @moveable.sprite.y < @start - @amount
+    @movable.sprite.y < @start - @amount
  
 class ForceMoveDirectionDown extends ForceMoveDirection
   constructor: (amount, callback) ->
     super(amount, callback)
 
-  onMoveableAssigned: () ->
-    @start = @moveable.sprite.y
+  onMovableAssigned: () ->
+    @start = @movable.sprite.y
 
   move: () ->
-    @moveable.move(DIRECTION.down)
+    @movable.move(DIRECTION.down)
     super()
     
   hasFinished: () ->
-    @moveable.sprite.y > @start + @amount
+    @movable.sprite.y > @start + @amount
 
 class ForceMoveDirectionLeft extends ForceMoveDirection
   constructor: (amount, callback) ->
     super(amount, callback)
 
-  onMoveableAssigned: () ->
-    @start = @moveable.sprite.x
+  onMovableAssigned: () ->
+    @start = @movable.sprite.x
 
   move: () ->
-    @moveable.move(DIRECTION.left)
+    @movable.move(DIRECTION.left)
     super()
     
   hasFinished: () ->
-    @moveable.sprite.x < @start - @amount
+    @movable.sprite.x < @start - @amount
 
 class ForceMoveDirectionRight extends ForceMoveDirection
   constructor: (amount, callback) ->
     super(amount, callback)
 
-  onMoveableAssigned: () ->
-    @start = @moveable.sprite.x
+  onMovableAssigned: () ->
+    @start = @movable.sprite.x
 
   move: () ->
-    @moveable.move(DIRECTION.right)
+    @movable.move(DIRECTION.right)
     super()
     
   hasFinished: () ->
-    @moveable.sprite.x > @start + @amount
+    @movable.sprite.x > @start + @amount
 
 # LevelTile represents a single tile in the level
 class LevelTile
@@ -287,7 +287,7 @@ class LevelTile
 
     @currState
 
-class Moveable
+class Movable
   move: (direction) ->
     switch direction
       when DIRECTION.up then @onMoveUp?()
@@ -298,7 +298,7 @@ class Moveable
 
   forceMove: (m) ->
     @activeForceMove = m
-    m.assignMoveable(this)
+    m.assignMovable(this)
     @activeForceMove.callback = Helpers.chainCallback(@activeForceMove.callback, () =>
       @move(DIRECTION.none)
       @activeForceMove = null)
@@ -308,7 +308,7 @@ class Moveable
     @activeForceMove.move() if @activeForceMove?
 
 # Player is the player object
-class Player extends Moveable
+class Player extends Movable
 
   MOVEMENT_SPEED: 150
   
@@ -327,6 +327,7 @@ class Player extends Moveable
     @sprite.body.setSize(40, 64, 10, 0)
     @activeForceMove = null
     @sprite.body.collideWorldBounds = true
+    @sprite.body.immovable = true
 
   onMoveUp: () ->
     @sprite.body.velocity.y = -@MOVEMENT_SPEED
@@ -400,6 +401,8 @@ class Chest
       @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
       
 
+
+
 class Monster
   constructor: (x, y, type, health, damage) ->
     @health = health
@@ -420,7 +423,7 @@ class Monster
   takeDamage: (dmg) ->
     @health = @health - dmg
 
-class SpiderThief extends Moveable
+class SpiderThief extends Movable
   constructor: () ->
     @sprite = game.add.sprite(-100, -100, 'spiderThief', @sprite)
     @sprite.animations.add('wriggle', [0, 1, 2, 3, 2, 1], 7, true)
