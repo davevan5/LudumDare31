@@ -372,6 +372,9 @@ allOnOne =
         @entities.push(tile)
         
   updateLevel: (level) ->
+    for monster in @monsterEntities
+        monster.sprite.kill()
+
     @level?.cleanup?(this)
     @level = level
     shakeWorld = 1
@@ -432,6 +435,8 @@ allOnOne =
     for tile in @tiles
       if tile.state() != TILE_STATES.Normal
         game.physics.arcade.collide(@player.sprite, tile.sprite)
+        for monster in @monsterEntities
+          game.physics.arcade.collide(monster.sprite, tile.sprite)
 
     for monster in @monsterEntities
       game.physics.arcade.collide(
