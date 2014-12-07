@@ -17,7 +17,7 @@ window.Game.levels = [
     ]
     trap: null
     start: (state) ->
-      state.monsterEntities.push(new Game.Monster(16, 5, 'slime', 20, 5))
+      state.monsterEntities.push(new Game.Monster(16, 5, 'slime', 20, 1))
       state.player.sprite.body.collideWorldBounds = false
       Game.Helpers.spideyPlaceChestOnTile(state, 17, 8)
       state.player.sprite.position = Game.Helpers.getEntityPositionForTile(4, 13)
