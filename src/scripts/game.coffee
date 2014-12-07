@@ -14,15 +14,15 @@ levels = [
       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
+      state.player.sprite.body.collideWorldBounds = false
       state.monsterEntities.push(new Monster('slime', 20))
       state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
       state.player.sprite.position = Helpers.getEntityPositionForTile(4, 13)
-      state.player.forceMove(DIRECTION.up, 256, () ->
+      state.player.forceMove(new ForceMoveDirectionUp(256, () ->
         state.player.inputActive = false
         state.getTile(4, 10).state(TILE_STATES.Raised)
-        next =  -> state.player.forceMove(DIRECTION.down, 0, -> state.player.sprite.body.collideWorldBounds = true)
-        setTimeout(next, 1250)
-      )
+        next = -> state.player.forceMove(new ForceMoveDirectionDown(0, -> state.player.sprite.body.collideWorldBounds = true))
+        setTimeout(next, 1250)))
     cleanup: null
   }, {
     data: [
@@ -39,7 +39,7 @@ levels = [
       1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     ]
     start: (state) ->
-      state.chest.sprite.position = Helpers.getEntityPositionForTile(17, 8)
+      state.chest.sprite.position = Helpers.getEntityPositionForTile(1, 1)
     cleanup: null
   }
 ]
@@ -111,63 +111,102 @@ Helpers =
         result += v + state + ","
     result.substr(0, result.length - 1) + "]"
 
+  chainCallback: (o, n) ->
+    () ->
+      n?.apply(null, arguments)
+      o?.apply(null, arguments)
+
+
+class KeymapEntry
+  constructor: () ->
+    @keys = []
+
+  add: (key) ->
+    @keys.push(key)
+
+  isDown: () ->
+    for key in @keys
+      return true if key.isDown
+    false
+
+keymap =
+  up: new KeymapEntry(),
+  down: new KeymapEntry(),
+  left: new KeymapEntry(),
+  right: new KeymapEntry()
+
+
 class ForceMoveDirection
-  constructor: (moveable, amount) ->
-    @moveable = moveable
+  constructor: (amount, callback) ->
     @amount = amount
+    @callback = callback
+
+  move: () ->
+    if @hasFinished()
+      @callback?()
+
+  assignMoveable: (moveable) ->
+    @moveable = moveable
+    @onMoveableAssigned?()
 
   hasFinished: 
     true
 
 class ForceMoveDirectionUp extends ForceMoveDirection
-  constructor: (moveable, amount) ->
-    super(moveable, amount)
-    @start = moveable.sprite.y
+  constructor: (amount, callback) ->
+    super(amount, callback)
 
+  onMoveableAssigned: () ->
+    @start = @moveable.sprite.y
+    
   move: () ->
     @moveable.move(DIRECTION.up)
+    super()
     
   hasFinished: () ->
     @moveable.sprite.y < @start - @amount
  
 class ForceMoveDirectionDown extends ForceMoveDirection
-  constructor: (moveable, amount) ->
-    super(moveable, amount)
-    @start = moveable.sprite.y
+  constructor: (amount, callback) ->
+    super(amount, callback)
+
+  onMoveableAssigned: () ->
+    @start = @moveable.sprite.y
 
   move: () ->
     @moveable.move(DIRECTION.down)
+    super()
     
   hasFinished: () ->
     @moveable.sprite.y > @start + @amount
 
 class ForceMoveDirectionLeft extends ForceMoveDirection
-  constructor: (moveable, amount) ->
-    super(moveable, amount)
-    @start = moveable.sprite.x
+  constructor: (amount, callback) ->
+    super(amount, callback)
+
+  onMoveableAssigned: () ->
+    @start = @moveable.sprite.x
 
   move: () ->
     @moveable.move(DIRECTION.left)
+    super()
     
   hasFinished: () ->
     @moveable.sprite.x < @start - @amount
 
 class ForceMoveDirectionRight extends ForceMoveDirection
-  constructor: (moveable, amount) ->
-    super(moveable, amount)
-    @start = moveable.sprite.x
+  constructor: (amount, callback) ->
+    super(amount, callback)
+
+  onMoveableAssigned: () ->
+    @start = @moveable.sprite.x
 
   move: () ->
     @moveable.move(DIRECTION.right)
+    super()
     
   hasFinished: () ->
     @moveable.sprite.x > @start + @amount
-
-FORCEMOVE_DIRECTION_MAP = {}
-FORCEMOVE_DIRECTION_MAP[DIRECTION.left] = ForceMoveDirectionLeft
-FORCEMOVE_DIRECTION_MAP[DIRECTION.right] = ForceMoveDirectionRight
-FORCEMOVE_DIRECTION_MAP[DIRECTION.up] = ForceMoveDirectionUp
-FORCEMOVE_DIRECTION_MAP[DIRECTION.down] = ForceMoveDirectionDown
 
 # LevelTile represents a single tile in the level
 class LevelTile
@@ -240,8 +279,28 @@ class LevelTile
 
     @currState
 
+class Moveable
+  move: (direction) ->
+    switch direction
+      when DIRECTION.up then @onMoveUp?()
+      when DIRECTION.down then @onMoveDown?()
+      when DIRECTION.left then @onMoveLeft?()
+      when DIRECTION.right then @onMoveRight?()
+      when DIRECTION.none then @onMoveStop?()
+
+  forceMove: (m) ->
+    @activeForceMove = m
+    m.assignMoveable(this)
+    @activeForceMove.callback = Helpers.chainCallback(@activeForceMove.callback, () =>
+      @move(DIRECTION.none)
+      @activeForceMove = null)
+      
+
+  update: () ->
+    @activeForceMove.move() if @activeForceMove?
+
 # Player is the player object
-class Player
+class Player extends Moveable
 
   MOVEMENT_SPEED: 150
   
@@ -259,63 +318,56 @@ class Player
     game.physics.arcade.enable(@sprite)
     @sprite.body.setSize(40, 64, 10, 0)
     @activeForceMove = null
-    #@sprite.body.collideWorldBounds = true
+    @sprite.body.collideWorldBounds = true
 
-  move: (direction) ->
-    switch direction
-      when DIRECTION.up
-        @sprite.body.velocity.y = -@MOVEMENT_SPEED
-        @sprite.animations.play('up')
-      when DIRECTION.down
-        @sprite.body.velocity.y = @MOVEMENT_SPEED
-        @sprite.animations.play('down')
-      when DIRECTION.left
-        @sprite.body.velocity.x = -@MOVEMENT_SPEED
-        @sprite.animations.play('left')
-      when DIRECTION.right
-        @sprite.body.velocity.x = @MOVEMENT_SPEED
-        @sprite.animations.play('right')
-      else
-        @sprite.body.velocity.x = 0
-        @sprite.body.velocity.y = 0
-        @sprite.animations.stop()
+  onMoveUp: () ->
+    @sprite.body.velocity.y = -@MOVEMENT_SPEED
+    @sprite.animations.play('up')
+
+  onMoveDown: () ->
+    @sprite.body.velocity.y = @MOVEMENT_SPEED
+    @sprite.animations.play('down')
+
+  onMoveLeft: () ->
+    @sprite.body.velocity.x = -@MOVEMENT_SPEED
+    @sprite.animations.play('left')
+
+  onMoveRight: () ->
+    @sprite.body.velocity.x = @MOVEMENT_SPEED
+    @sprite.animations.play('right')
+
+  onMoveStop: () ->
+    @sprite.body.velocity.x = 0
+    @sprite.body.velocity.y = 0
+    @sprite.animations.stop()
 
 
   handleInput: () ->
-    if cursors.left.isDown || wasd.left.isDown
+    if keymap.left.isDown()
       @move(DIRECTION.left)
-    else if cursors.right.isDown || wasd.right.isDown
+    else if keymap.right.isDown()
       @move(DIRECTION.right)
     else
       @sprite.body.velocity.x = 0
 
-    if cursors.up.isDown || wasd.up.isDown
+    if keymap.up.isDown()
       @move(DIRECTION.up)
-    else if cursors.down.isDown || wasd.down.isDown
+    else if keymap.down.isDown()
       @move(DIRECTION.down)
     else
       @sprite.body.velocity.y = 0
 
-  forceMove: (direction, amount, callback) ->
-    type = FORCEMOVE_DIRECTION_MAP[direction]
-    
-    if type?
-      @activeForceMove = new type(this, amount)
-      @activeForceMove.callback = callback
-      @inputActive = false
+  forceMove: (f) ->
+    @inputActive = false    
+    f.callback = Helpers.chainCallback(f.callback, () => @inputActive = true)
+    super(f)
     
   update: () ->
+    super()
+
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
 
     @handleInput() if @inputActive
-
-    if @activeForceMove?
-      @activeForceMove.move()
-      if @activeForceMove.hasFinished()
-        @move(DIRECTION.none)
-        @inputActive = true
-        @activeForceMove.callback?(this)
-        @activeForceMove = null
 
     if @sprite.body.velocity.x == 0 && @sprite.body.velocity.y == 0
       @sprite.animations.stop()
@@ -354,6 +406,12 @@ class Monster
 
   takeDamage: (dmg) ->
     @health = @health - dmg
+
+class SpiderThief
+  constructor: () ->
+    @sprite = game.add.sprite(-100, -100, 'spiderThief')
+
+  update: () ->
       
 # Default game state
 allOnOne =
@@ -383,6 +441,18 @@ allOnOne =
         tile.state(level.data[tileIndex])
 
     @level?.start?(this)
+
+  nextLevel: () ->
+    @currentLevel++ if @currentLevel?
+    @currentLevel = 0 unless @currentLevel?
+
+    @updateLevel(levels[@currentLevel])
+
+  levelTransition: () ->
+    return if @transitioning
+    @transitioning = true
+    @nextLevel()
+    @transitioning = false
     
   preload: () ->
     game.time.advancedTiming = true
@@ -391,33 +461,39 @@ allOnOne =
     game.load.image('chest', '../content/sprites/chest.png')
     game.load.spritesheet('slime', '../content/sprites/slime.png', 64, 64)
 
+  setupKeyboard: () ->
+    addToKeyMap = (maps) ->
+      for mapKey, key of maps
+        keymap[mapKey].add(key) if keymap[mapKey]?
+
+    addToKeyMap(game.input.keyboard.createCursorKeys())
+    addToKeyMap(
+      up: game.input.keyboard.addKey(Phaser.Keyboard.W)
+      down: game.input.keyboard.addKey(Phaser.Keyboard.S)
+      left: game.input.keyboard.addKey(Phaser.Keyboard.A)
+      right: game.input.keyboard.addKey(Phaser.Keyboard.D))
+
   create: () ->
     @tiles = []
     @entities = []
     @criticalEntities = []
     @monsterEntities = []
-    game.physics.startSystem(Phaser.Physics.ARCADE)
 
-    cursors = game.input.keyboard.createCursorKeys()
-    wasd = {
-      up: game.input.keyboard.addKey(Phaser.Keyboard.W),
-      down: game.input.keyboard.addKey(Phaser.Keyboard.S),
-      left: game.input.keyboard.addKey(Phaser.Keyboard.A),
-      right: game.input.keyboard.addKey(Phaser.Keyboard.D),
-    }
+    game.physics.startSystem(Phaser.Physics.ARCADE)
+    @setupKeyboard()
 
     @createTiles()
     @player = new Player()
     @chest = new Chest()
     @criticalEntities.push(@player)
     @criticalEntities.push(@chest)
-    @updateLevel(levels[0])
+    @nextLevel()
 
     if debug
       debugKey = game.input.keyboard.addKey(Phaser.Keyboard.NUMPAD_0)
       debugKey.onDown.add () =>
         console.log(Helpers.levelDataToString(@tiles))
-      
+        
   update: () ->
     for entity in @criticalEntities
       entity.update?()
@@ -434,7 +510,7 @@ allOnOne =
       if tile.state() != TILE_STATES.Normal
         game.physics.arcade.collide(@player.sprite, tile.sprite)
 
-    game.physics.arcade.collide(@player.sprite, @chest.sprite, () => @updateLevel(levels[1]))
+    game.physics.arcade.collide(@player.sprite, @chest.sprite, () => @levelTransition())
 
     # Sort sprites and groups in the world, so that z-order is correct
     game.world.sort()
