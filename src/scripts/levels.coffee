@@ -35,7 +35,7 @@ window.Game.levels = [
           state.getTile(1,1).state(Game.TILE_STATES.Normal)
         setTimeout(next, 1250)))
     cleanup: (state) ->
-      Helpers.waitZero () =>
+      Game.Helpers.zeroTimeout () =>
         @trap.sprite.destroy();
   }, {
     data: [

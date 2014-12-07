@@ -95,6 +95,7 @@ Helpers =
       DIRECTION.down
     else
       DIRECTION.up
+
   zeroTimeout: (c) ->
     setTimeout(c, 0)
 
