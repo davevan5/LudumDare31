@@ -1,7 +1,7 @@
 window.Game = {} unless window.Game
 
 # Set to true to enable debug features
-debug = true
+debug = false
 
 cursors = null
 wasd = null
@@ -95,6 +95,7 @@ Helpers =
       DIRECTION.down
     else
       DIRECTION.up
+
   zeroTimeout: (c) ->
     setTimeout(c, 0)
 
@@ -443,9 +444,6 @@ class Chest
       @sprite.z = @forceZ
     else
       @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.1
-      
-
-
 
 class Monster
   constructor: (x, y, type, health, damage) ->
@@ -496,7 +494,6 @@ class SpiderThief extends Movable
       x: @targetPosition.x
       y: -128
 
-
   lowerToTarget: (callback) ->
     @forceMove(new ForceMoveDirectionDown(@targetPosition.y - @sprite.position.y, callback))
 
@@ -524,7 +521,48 @@ class SpiderThief extends Movable
 
     @sprite.z = @forceZ
 
+class Trap
+  constructor: () ->
+    @sprite = game.add.sprite(0, 0, 'flameGrate')
+    @sprite.animations.add('idle', [0], 1, false)
+    @sprite.animations.add('warmup', [1, 2, 3, 4], 5, false)
+    @sprite.animations.add('sprout', [5, 6, 7, 6], 10, true)
+    @sprite.animations.add('cooldown', [6, 7, 8, 4, 3, 2], 10, false)
+    @sprite.animations.play('idle')
+    @sprite.anchor = {x:0, y: 10}
+    @chooseNextFireTime()
+    @state = 'idle'
+    @sprite.events.onAnimationComplete.add((e, a) =>
+      if a.name == 'warmup'
+        @state = 'sprout'
+        @sprite.animations.play('sprout')
+        @chooseNextFireTime()
+      if a.name == 'cooldown'
+        @state = 'idle'
+        @sprite.animations.play('idle')
+        @chooseNextFireTime())
       
+
+  chooseNextFireTime: () ->
+    @fireTime = game.time.now + 2000 + (Math.floor(Math.random() * 500))
+
+  attachTo: (tile) ->
+    @sprite.anchor = { x: 0, y: 0 }
+    @sprite.position = { x: 0, y: -10 }
+    tile.sprite.addChild(@sprite)
+    @attachedTo = tile
+
+  update: () ->
+    @sprite.tint = @attachedTo.sprite.tint if @attachedTo?
+
+    if game.time.now > @fireTime
+      if @state == 'idle'
+        @state = 'warmup'
+        @sprite.animations.play("warmup")
+      if @state == 'sprout'
+        @state = 'cooldown'
+        @sprite.animations.play("cooldown")
+    
 # Default game state
 allOnOne =
   getTileIndex: (x,y) ->
@@ -545,6 +583,7 @@ allOnOne =
   updateLevel: (level) ->
     for monster in @monsterEntities
         monster.sprite.kill()
+    @monsterEntities = []
 
     @level?.cleanup?(this)
     @level = level
@@ -582,6 +621,7 @@ allOnOne =
     game.load.image('chest', '../content/sprites/chest.png')
     game.load.spritesheet('slime', '../content/sprites/slime.png', 64, 64)
     game.load.spritesheet('spiderThief', '../content/sprites/spider.png', 128 ,128)
+    game.load.spritesheet('flameGrate', '../content/sprites/fire.png', 64, 74)
 
   setupKeyboard: () ->
     addToKeyMap = (maps) ->
@@ -668,3 +708,4 @@ window.Game.ForceMoveDirectionUp = ForceMoveDirectionUp
 window.Game.ForceMoveDirectionDown = ForceMoveDirectionDown
 window.Game.ForceMoveDirectionLeft = ForceMoveDirectionLeft
 window.Game.ForceMoveDirectionRight = ForceMoveDirectionRight
+window.Game.Trap = Trap
