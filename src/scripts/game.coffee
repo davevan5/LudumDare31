@@ -315,12 +315,15 @@ class Player extends Movable
     @health = new HealthMeter(10, 10, 6)
 
     @inputActive = true
+    @dead = false
     
     @sprite = game.add.sprite(256, 640, 'player')
-    @sprite.animations.add('left', [0, 3, 0, 1], 7, true)
-    @sprite.animations.add('right', [4, 5, 4, 7], 7, true)
-    @sprite.animations.add('down', [8, 9, 10, 11], 7, true)
-    @sprite.animations.add('up', [12, 13, 14, 15], 7, true)
+    @sprite.animations.add('left', [0, 1, 0, 2], 7, true)
+    @sprite.animations.add('right', [3, 4, 3, 5], 7, true)
+    @sprite.animations.add('down', [6, 7, 6, 8], 7, true)
+    @sprite.animations.add('up', [9, 10, 9, 11], 7, true)
+    @sprite.animations.add('death', [13, 14, 15, 16, 17], 7, false)
+    @sprite.animations.add('dead', [0,1], 1, true)
 
     game.physics.arcade.enable(@sprite)
     @sprite.body.setSize(40, 64, 10, 0)
@@ -370,8 +373,14 @@ class Player extends Movable
     
   update: () ->
     super()
-
     @sprite.z = Helpers.getZIndex(LEVEL_TILE_SIZE.width, Math.floor((@sprite.y + 26) / TILE_PIXEL_SIZE.height)) + 0.5
+
+    if @health.current <= 0 and not @activeForceMove
+      if not @dead
+        @inputActive = false
+        @dead = true
+        @sprite.animations.play('death', 10, false, false)
+      return
 
     @handleInput() if @inputActive
 
